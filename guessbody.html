@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Body Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>My Body – Guess the Word</h1>
+<p id="word">Click a word to start</p>
+
+<div class="game">
+  <div class="body">
+    <button class="part" data-part="head" style="top:10px; left:80px;"></button>
+    <button class="part" data-part="eye" style="top:40px; left:95px;"></button>
+    <button class="part" data-part="nose" style="top:55px; left:100px;"></button>
+    <button class="part" data-part="mouth" style="top:75px; left:95px;"></button>
+    <button class="part" data-part="hand" style="top:110px; left:10px;"></button>
+    <button class="part" data-part="leg" style="top:180px; left:95px;"></button>
+  </div>
+
+  <div class="words">
+    <button onclick="selectWord('head')">Head</button>
+    <button onclick="selectWord('eye')">Eye</button>
+    <button onclick="selectWord('nose')">Nose</button>
+    <button onclick="selectWord('mouth')">Mouth</button>
+    <button onclick="selectWord('hand')">Hand</button>
+    <button onclick="selectWord('leg')">Leg</button>
+  </div>
+</div>
+
+<p id="result"></p>
+
+<script src="script.js"></script>
+</body>
+</html>

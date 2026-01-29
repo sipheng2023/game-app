@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Simple Runner Game</title>
+  <style>
+    :root {
+      --bg: #12141a;
+      --ground: #1f2430;
+      --player: #4ade80;   /* green */
+      --obstacle: #ef4444; /* red */
+      --text: #e5e7eb;
+      --accent: #60a5fa;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: linear-gradient(180deg, #0b0e13 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    }
+
+    .wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo {
+      width: 100px;
+      height: 100px;
+      object-fit: contain;
+      border-radius: 6px;
+      background: transparent;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .title {
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: var(--accent);
+      color: #0b0e13;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: #374151;
+      color: var(--text);
+    }
+    button:active { transform: translateY(1px); }
+
+    .hud {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .game {
+      position: relative;
+      width: 100%;
+      height: 320px;
+      border-radius: 12px;
+      overflow: hidden;
+      background:
+        radial-gradient(1200px 300px at 50% 120%, rgba(96,165,250,0.08), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+
+    .ground {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 80px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.0)),
+        repeating-linear-gradient(90deg, var(--ground) 0 12px, #232834 12px 24px);
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .player {
+      position: absolute;
+      left: 60px;
+      bottom: 80px; /* sits on ground */
+      width: 36px;
+      height: 36px;
+      background: var(--player);
+      border-radius: 6px;
+      box-shadow: 0 6px 16px rgba(74,222,128,0.35);
+      display: block;
+      object-fit: cover;
+    }
+
+    .obstacle {
+      position: absolute;
+      bottom: 80px;
+      width: 24px;
+      height: 40px;
+      background: var(--obstacle);
+      border-radius: 4px;
+      box-shadow: 0 6px 16px rgba(239,68,68,0.35);
+    }
+
+    .cloud {
+      position: absolute;
+      top: 30px;
+      width: 80px;
+      height: 24px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 12px;
+      filter: blur(0.5px);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(0,0,0,0.35);
+      backdrop-filter: blur(2px);
+      color: var(--text);
+      text-align: center;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 200ms ease;
+    }
+    .overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .overlay h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
+    .overlay p {
+      margin: 0 0 12px;
+      opacity: 0.9;
+    }
+
+    .mobile-tip {
+      font-size: 12px;
+      opacity: 0.8;
+      margin-top: 6px;
+    }
+
+    @media (max-width: 640px) {
+      .game { height: 280px; }
+      .ground { height: 70px; }
+      .player { width: 32px; height: 32px; }
+      .obstacle { width: 22px; height: 36px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <!-- Put your logo file here (logo.png) or change the src to your path/URL -->
+        <img id="logo" class="logo" src="logo.jpeg" alt="Logo">
+        <div class="title">Endless Runner</div>
+      </div>
+      <div class="controls">
+        <button id="startBtn">Start</button>
+        <button id="pauseBtn" class="secondary">Pause</button>
+        <button id="resetBtn" class="secondary">Reset</button>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div><strong>Score:</strong> <span id="score">0</span></div>
+      <div><strong>High score:</strong> <span id="high">0</span></div>
+      <div><strong>Speed:</strong> <span id="speed">1.0x</span></div>
+      <div class="mobile-tip">Tap the game area or press Space/Up to jump</div>
+    </div>
+
+    <div id="game" class="game" tabindex="0" aria-label="Game area">
+      <div class="ground"></div>
+      <!-- Replace player block with an animated GIF. Put your GIF as `dog.gif` next to this HTML file. -->
+      <img id="player" class="player" aria-label="Player" src="dog-running.gif" alt="Player">
+      <div id="overlay" class="overlay">
+        <div>
+          <h2>Ready to run?</h2>
+          <p>Press Start, then jump over obstacles. Survive to increase your score.</p>
+          <p>Space/Up or tap to jump. Avoid red blocks!</p>
+          <button id="overlayStart">Start</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Game state ---
+    const gameEl = document.getElementById('game');
+    const playerEl = document.getElementById('player');
+    const overlayEl = document.getElementById('overlay');
+    const scoreEl = document.getElementById('score');
+    const highEl = document.getElementById('high');
+    const speedEl = document.getElementById('speed');
+
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const overlayStartBtn = document.getElementById('overlayStart');
+
+    const GROUND_Y = 80; // ground height
+    // Coordinate: `playerY` is height above ground (>= 0).
+    // Upwards velocity is positive; gravity pulls down (negative).
+    const GRAVITY = -0.0019; // px/ms^2 (negative to pull player down)
+    const JUMP_VELOCITY = 0.75; // px/ms (positive upward)
+    const BASE_SPEED = 0.25; // px/ms
+    const SPEED_INCREASE = 0.00003; // per ms
+    const OBSTACLE_MIN_GAP = 900; // ms
+    const OBSTACLE_MAX_GAP = 1600; // ms
+
+    let running = false;
+    let paused = false;
+    let lastTime = 0;
+    let playerY = 0; // vertical offset from ground
+    let playerVY = 0; // vertical velocity
+    // Duck / fast-fall state
+    let ducking = false;
+    const DUCK_HEIGHT_RATIO = 0.5;
+    const FAST_FALL_VELOCITY = -1.5; // stronger downward velocity when fast-falling
+    const ORIGINAL_PLAYER_HEIGHT = playerEl.offsetHeight;
+    let speedMultiplier = 1.0;
+    let score = 0;
+    let highScore = Number(localStorage.getItem('runner_high') || 0);
+    let obstacles = [];
+    let clouds = [];
+    let nextObstacleAt = 0;
+
+    highEl.textContent = highScore;
+
+    // --- Utility ---
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+    function rectsOverlap(a, b) {
+      return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+    }
+
+    function getRect(el) {
+      const r = el.getBoundingClientRect();
+      const gr = gameEl.getBoundingClientRect();
+      return {
+        left: r.left - gr.left,
+        right: r.right - gr.left,
+        top: r.top - gr.top,
+        bottom: r.bottom - gr.top,
+        width: r.width,
+        height: r.height
+      };
+    }
+
+    // --- Player control ---
+    function jump() {
+      if (!running || paused) return;
+      // don't jump while ducking; allow only when on/near ground
+      if (ducking) return;
+      if (playerY <= 2) {
+        playerVY = JUMP_VELOCITY;
+      }
+    }
+
+    function duckStart() {
+      if (!running || paused) return;
+      // If on ground, enter ducking (reduce height)
+      if (playerY <= 2) {
+        if (!ducking) {
+          ducking = true;
+          playerEl.style.height = (ORIGINAL_PLAYER_HEIGHT * DUCK_HEIGHT_RATIO) + 'px';
+        }
+      } else {
+        // If in air, trigger a faster fall
+        playerVY = Math.min(playerVY, FAST_FALL_VELOCITY);
+      }
+    }
+
+    function duckEnd() {
+      if (ducking) {
+        ducking = false;
+        playerEl.style.height = ORIGINAL_PLAYER_HEIGHT + 'px';
+      }
+    }
+
+    // --- Obstacles ---
+    function spawnObstacle() {
+      const el = document.createElement('div');
+      el.className = 'obstacle';
+      const h = 30 + Math.random() * 24; // variable height
+      el.style.height = h + 'px';
+      el.style.left = gameEl.clientWidth + 'px';
+      gameEl.appendChild(el);
+      obstacles.push({ el, x: gameEl.clientWidth, w: el.offsetWidth, h });
+    }
+
+    function scheduleNextObstacle(now) {
+      const gap = OBSTACLE_MIN_GAP + Math.random() * (OBSTACLE_MAX_GAP - OBSTACLE_MIN_GAP);
+      nextObstacleAt = now + gap / speedMultiplier; // adjust by speed
+    }
+
+    // --- Clouds (parallax) ---
+    function spawnCloud() {
+      const el = document.createElement('div');
+      el.className = 'cloud';
+      const w = 60 + Math.random() * 60;
+      el.style.width = w + 'px';
+      el.style.left = gameEl.clientWidth + 'px';
+      el.style.top = (10 + Math.random() * 80) + 'px';
+      gameEl.appendChild(el);
+      clouds.push({ el, x: gameEl.clientWidth, speed: 0.06 + Math.random() * 0.04 });
+    }
+
+    // --- Game loop ---
+    function update(now) {
+      if (!running || paused) return;
+      const dt = lastTime ? (now - lastTime) : 16;
+      lastTime = now;
+
+      // Increase speed slowly over time
+      speedMultiplier += SPEED_INCREASE * dt;
+      speedEl.textContent = (speedMultiplier).toFixed(2) + 'x';
+
+      // Update player physics
+      playerVY += GRAVITY * dt;
+      playerY += playerVY * dt;
+      // Clamp to ground and clear vertical velocity on landing
+      if (playerY < 0) {
+        playerY = 0;
+        playerVY = 0;
+      }
+      const visualY = GROUND_Y + playerY;
+      playerEl.style.bottom = visualY + 'px';
+
+      // Spawn obstacles
+      if (now >= nextObstacleAt) {
+        spawnObstacle();
+        scheduleNextObstacle(now);
+      }
+
+      // Move obstacles
+      const speed = BASE_SPEED * speedMultiplier * dt;
+      obstacles.forEach(o => {
+        o.x -= speed;
+        o.el.style.left = o.x + 'px';
+      });
+      obstacles = obstacles.filter(o => {
+        if (o.x + o.w < 0) {
+          o.el.remove();
+          return false;
+        }
+        return true;
+      });
+
+      // Move clouds
+      clouds.forEach(c => {
+        c.x -= c.speed * dt;
+        c.el.style.left = c.x + 'px';
+      });
+      clouds = clouds.filter(c => {
+        if (c.x + c.el.offsetWidth < 0) {
+          c.el.remove();
+          return false;
+        }
+        return true;
+      });
+
+      // Collision detection
+      const pRect = getRect(playerEl);
+      for (const o of obstacles) {
+        const oRect = getRect(o.el);
+        if (rectsOverlap(pRect, oRect)) {
+          gameOver();
+          return;
+        }
+      }
+
+      // Score increases with time and speed
+      score += Math.floor(dt * speedMultiplier * 0.05);
+      scoreEl.textContent = score;
+
+      // Occasionally spawn clouds
+      if (Math.random() < 0.01) spawnCloud();
+
+      requestAnimationFrame(update);
+    }
+
+    function gameOver() {
+      running = false;
+      paused = false;
+      overlayEl.classList.add('show');
+      overlayEl.querySelector('h2').textContent = 'Game Over';
+      overlayEl.querySelector('p').textContent = `Score: ${score}. Press Start to try again.`;
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('runner_high', String(highScore));
+        highEl.textContent = highScore;
+      }
+    }
+
+    function startGame() {
+      // Reset state but keep high score
+      obstacles.forEach(o => o.el.remove());
+      clouds.forEach(c => c.el.remove());
+      obstacles = [];
+      clouds = [];
+      playerY = 0;
+      playerVY = 0;
+      speedMultiplier = 1.0;
+      score = 0;
+      scoreEl.textContent = '0';
+      speedEl.textContent = '1.00x';
+      lastTime = performance.now();
+      scheduleNextObstacle(lastTime);
+      overlayEl.classList.remove('show');
+      running = true;
+      paused = false;
+      // restore player visual state
+      ducking = false;
+      playerEl.style.height = ORIGINAL_PLAYER_HEIGHT + 'px';
+      requestAnimationFrame(update);
+      gameEl.focus();
+    }
+
+    function pauseGame() {
+      if (!running) return;
+      paused = !paused;
+      pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+      if (!paused) {
+        lastTime = performance.now();
+        requestAnimationFrame(update);
+      }
+    }
+
+    function resetGame() {
+      running = false;
+      paused = false;
+      pauseBtn.textContent = 'Pause';
+      obstacles.forEach(o => o.el.remove());
+      clouds.forEach(c => c.el.remove());
+      obstacles = [];
+      clouds = [];
+      playerY = 0;
+      playerVY = 0;
+      speedMultiplier = 1.0;
+      score = 0;
+      scoreEl.textContent = '0';
+      speedEl.textContent = '1.00x';
+      ducking = false;
+      playerEl.style.height = ORIGINAL_PLAYER_HEIGHT + 'px';
+      overlayEl.classList.add('show');
+      overlayEl.querySelector('h2').textContent = 'Ready to run?';
+      overlayEl.querySelector('p').textContent = 'Press Start, then jump over obstacles. Survive to increase your score.';
+    }
+
+    // --- Input ---
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+        e.preventDefault();
+        jump();
+      }
+      if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+        e.preventDefault();
+        duckStart();
+      }
+      if (e.code === 'KeyP') pauseGame();
+      if (e.code === 'Enter') startGame();
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+        e.preventDefault();
+        duckEnd();
+      }
+    });
+
+    // Pointer/touch: tap to jump
+    gameEl.addEventListener('pointerdown', () => jump());
+    startBtn.addEventListener('click', startGame);
+    overlayStartBtn.addEventListener('click', startGame);
+    pauseBtn.addEventListener('click', pauseGame);
+    resetBtn.addEventListener('click', resetGame);
+
+    // Initial overlay
+    overlayEl.classList.add('show');
+
+    // Accessibility: focus ring on game area for keyboard users
+    gameEl.addEventListener('focus', () => gameEl.style.outline = '2px solid rgba(96,165,250,0.6)');
+    gameEl.addEventListener('blur', () => gameEl.style.outline = 'none');
+  </script>
+</body>
+</html>

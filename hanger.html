@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hangman – Word Guessing Game</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --text: #e5e7eb;
+      --accent: #22d3ee;
+      --muted: #9ca3af;
+      --danger: #ef4444;
+      --success: #10b981;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center;
+      background: radial-gradient(1200px 600px at 20% 20%, #0b1220, var(--bg));
+      color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+    .game {
+      width: min(720px, 92vw);
+      background: linear-gradient(180deg, #0d1324, var(--card));
+      border: 1px solid #1f2937; border-radius: 16px; padding: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    }
+    .header {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      margin-bottom: 16px;
+    }
+    .title { font-weight: 700; letter-spacing: 0.4px; }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; }
+    button, select {
+      background: #0b1220; color: var(--text); border: 1px solid #334155;
+      padding: 10px 14px; border-radius: 10px; cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    .status {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0 20px;
+    }
+    .card {
+      background: #0b1220; border: 1px solid #1f2937; border-radius: 12px; padding: 12px;
+    }
+    .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .value { margin-top: 6px; font-size: 16px; }
+    .word {
+      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+      margin: 18px 0 8px;
+    }
+    .slot {
+      width: 40px; height: 56px; border-radius: 10px;
+      background: #0b1220; border: 1px dashed #334155;
+      display: grid; place-items: center; font-size: 24px; font-weight: 700;
+      text-transform: uppercase;
+    }
+    .hint { text-align: center; color: var(--muted); margin-bottom: 12px; }
+    .keyboard {
+      display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px;
+    }
+    .key {
+      background: #0b1220; border: 1px solid #334155; color: var(--text);
+      border-radius: 10px; padding: 10px; text-transform: uppercase; font-weight: 600;
+    }
+    .key:disabled { color: #64748b; border-color: #1f2937; cursor: not-allowed; }
+    .key.correct { border-color: var(--success); color: var(--success); }
+    .key.wrong { border-color: var(--danger); color: var(--danger); }
+    .footer {
+      margin-top: 16px; display: flex; justify-content: space-between; align-items: center;
+      color: var(--muted);
+    }
+    .hangman {
+      display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: center;
+    }
+    .gallows {
+      width: 120px; height: 120px; border: 1px solid #1f2937; border-radius: 12px;
+      position: relative; background: #0b1220;
+    }
+    /* Simple hangman drawing using pseudo elements */
+    .stage-0::before { content: ""; position: absolute; left: 12px; bottom: 8px; width: 96px; height: 6px; background: #334155; }
+    .stage-1::after { content: ""; position: absolute; left: 24px; bottom: 8px; width: 6px; height: 90px; background: #334155; }
+    .stage-2 .beam { position: absolute; left: 24px; top: 12px; width: 70px; height: 6px; background: #334155; }
+    .stage-3 .rope { position: absolute; left: 88px; top: 18px; width: 2px; height: 18px; background: #64748b; }
+    .stage-4 .head { position: absolute; left: 80px; top: 34px; width: 18px; height: 18px; border-radius: 50%; border: 2px solid #64748b; }
+    .stage-5 .body { position: absolute; left: 88px; top: 52px; width: 2px; height: 26px; background: #64748b; }
+    .stage-6 .arm-l { position: absolute; left: 76px; top: 60px; width: 14px; height: 2px; background: #64748b; transform: rotate(-25deg); transform-origin: right; }
+    .stage-7 .arm-r { position: absolute; left: 88px; top: 60px; width: 14px; height: 2px; background: #64748b; transform: rotate(25deg); transform-origin: left; }
+    .stage-8 .leg-l { position: absolute; left: 80px; top: 76px; width: 10px; height: 2px; background: #64748b; transform: rotate(35deg); transform-origin: right; }
+    .stage-9 .leg-r { position: absolute; left: 88px; top: 76px; width: 10px; height: 2px; background: #64748b; transform: rotate(-35deg); transform-origin: left; }
+    .result {
+      margin-top: 10px; font-weight: 700;
+    }
+    .win { color: var(--success); }
+    .lose { color: var(--danger); }
+  </style>
+</head>
+<body>
+  <div class="game">
+    <div class="header">
+      <div class="title">Hangman – Word Guessing Game</div>
+      <div class="controls">
+        <div style="align-self:center;color:var(--muted);font-size:14px;padding-right:8px;">English</div>
+        <button id="newGame">New game</button>
+        <button id="revealAnswer" style="display:none;">Reveal answer</button>
+      </div>
+    </div>
+
+    <div class="status">
+      <div class="card">
+        <div class="label">Incorrect guesses</div>
+        <div class="value" id="wrongLetters">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Remaining attempts</div>
+        <div class="value" id="remaining">9</div>
+      </div>
+    </div>
+
+    <div class="hangman">
+      <div class="gallows stage-0" id="gallows">
+        <div class="beam"></div>
+        <div class="rope"></div>
+        <div class="head"></div>
+        <div class="body"></div>
+        <div class="arm-l"></div>
+        <div class="arm-r"></div>
+        <div class="leg-l"></div>
+        <div class="leg-r"></div>
+      </div>
+      <div>
+        <div class="hint" id="hint">Guess the word by selecting letters.</div>
+        <div class="word" id="word"></div>
+        <div class="keyboard" id="keyboard"></div>
+        <div class="result" id="result"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>Tip: ທ່ານຍັງສາມາດໃຊ້ແປ້ນພິມຂອງທ່ານເພື່ອເດົາຕົວອັກສອນໄດ້.</div>
+      <div>Max mistakes: 9</div>
+    </div>
+  </div>
+
+  <script>
+    // English-only word bank
+    const WORDS = [
+      { word: "algorithm", hint: "ຂັ້ນຕອນການແກ້ໄຂບັນຫາແບບເທື່ອລະຂັ້ນຕອນ", category: "Programming", meaning: "ບາດກ້າວລວງເຫື່ອໃນການແກ້ໄຂບັນຫາ" },
+      { word: "variable", hint: "ໃຊ້ສໍາລັບສ້າງແທນຄ່າໃດໜ້າ", category: "Programming", meaning: "ຕົວແປທີ່ເກັບຄ່າ" },
+      { word: "function", hint: "ຫນ້າທີ່ຂອງແຕ່ລະປຸ່ມໃຊ້ງານ", category: "Programming", meaning: "ຫນ້າທີ່ທີ່ສາມາດເອີ້ນໃຊ້ໄດ້" },
+      { word: "network", hint: "ເຄື່ອຂ່າຍຄອມພິວເຕີ້", category: "Technology", meaning: "ເຄື່ອຂ່າຍທີ່ເຊື່ອມຕໍ່ອຸປະກອນ" },
+      { word: "automation", hint: "ໜ້າວຽກທີ່ປະຕິບັດດ້ວຍການປ້ອນຂໍ້ມູນຂອງມະນຸດໜ້ອຍທີ່ສຸດ", category: "Technology", meaning: "ການອັດຕະໂນມັດໃຫ້ເຄື່ອງກໍາລັງເຮັດວຽກ" },
+      { word: "database", hint: "ລະບົບຈັດການຂໍ້ມູນ", category: "Programming", meaning: "ຖານຂໍ້ມູນເກັບຮັກສາຂໍ້ມູນ" },
+      { word: "compiler", hint: "ໂປຣແກຣມທີ່ແປລະຫັດເປັນພາສາເຄື່ອງ", category: "Programming", meaning: "ໂປຣແກຣມສຳລັບແປລະຫັດແຂງ" },
+      { word: "interface", hint: "ຈໍານວນເນື້ອໃນໂປຣແກຣມ", category: "Technology", meaning: "ໜ້າຕໍ່ໂຕ້ຕອບກັບຜູ້ໃຊ້" },
+      { word: "encryption", hint: "ການແປງເນື້ອໃນໂປຣແກຣມ", category: "Security", meaning: "ການເຂົ້າລະຫັດຂໍ້ມູນເພື່ອຄວາມປອດໄພ" },
+      { word: "toy", hint: "ຂອງຫລີ້ນເດັກນ້ອຍ", category: "Objects", meaning: "ຂອງເລົ່ນທີ່ເດັກໂຕນອນທີ່ສະຫວາສດ໋ิ" },
+      { word: "bicycle", hint: "ພາຫະນະທີ່ມີສອງລໍ", category: "Transportation", meaning: "ລົດຖີ່ນທີ່ໃຊ້ການປັ່ນ" },
+      { word: "guitar", hint: "ເຄື່ອງດົນຕີທີ່ມີສາຍ", category: "Music", meaning: "ເຄື່ອງດົນຕີທີ່ໃຊ້ມື້ດັບ" },
+      { word: "elephant", hint: "ສັດທີ່ໃຫຍ່ແລະມີงາ", category: "Animals", meaning: "ສັດນ້ອນໃນໂລກ" },
+      { word: "mountain", hint: "ພູທີ່ສູງ", category: "Nature", meaning: "ພູທີ່ສູງແລະເຂົ່າ" },
+      { word: "ocean", hint: "ນ້ຳໃຫຍ່ທີ່ຄຸມຄອງສ່ວນໃຫຍ່ຂອງໂລກ", category: "Nature", meaning: "ນ້ຳໃຫຍ່ທີ່ເປັນເຮືອນຂອງຊາວນ້ຳ" },
+      { word: "pyramid", hint: "ໂຄງສ້າງທີ່ມີຮູບສາມແຫ່ງ", category: "Architecture", meaning: "ໂຄງສ້າງທາງປະຫວັດສາດໃນອິຢິບ" }
+    ];
+
+    const MAX_MISTAKES = 12;
+    const alphabet = "abcdefghijklmnopqrstuvwxyz".split("");
+
+    let secret = "";
+    let hint = "";
+    let category = "";
+    let meaning = "";
+    let revealed = [];
+    let wrong = new Set();
+    let mistakes = 0;
+
+    const els = {
+      word: document.getElementById("word"),
+      keyboard: document.getElementById("keyboard"),
+      wrongLetters: document.getElementById("wrongLetters"),
+      remaining: document.getElementById("remaining"),
+      result: document.getElementById("result"),
+      hint: document.getElementById("hint"),
+      gallows: document.getElementById("gallows"),
+      newGame: document.getElementById("newGame"),
+      revealAnswer: document.getElementById("revealAnswer")
+    };
+
+    function normalize(str) {
+      // Keep letters from any language; remove spaces for gameplay
+      return str.replace(/\s+/g, "");
+    }
+
+    function pickWord() {
+      const item = WORDS[Math.floor(Math.random() * WORDS.length)];
+      secret = normalize(item.word);
+      hint = item.hint;
+      category = item.category;
+      meaning = item.meaning;
+      revealed = Array(secret.length).fill("");
+      wrong.clear();
+      mistakes = 0;
+      // hide reveal button at new game
+      els.revealAnswer.style.display = 'none';
+      updateUI();
+      renderKeyboard();
+      els.result.textContent = "";
+    }
+
+    function updateUI() {
+      // Word slots
+      els.word.innerHTML = "";
+      revealed.forEach((ch, i) => {
+        const div = document.createElement("div");
+        div.className = "slot";
+        div.textContent = ch || "";
+        els.word.appendChild(div);
+      });
+
+      // Wrong letters
+      els.wrongLetters.textContent = wrong.size ? [...wrong].join(", ").toUpperCase() : "—";
+      els.remaining.textContent = Math.max(0, MAX_MISTAKES - mistakes);
+      els.hint.textContent = `Category: ${category} | ${hint}`;
+
+      // Hangman stage
+      els.gallows.className = "gallows stage-" + mistakes;
+    }
+
+    function renderKeyboard() {
+      els.keyboard.innerHTML = "";
+      alphabet.forEach(letter => {
+        const btn = document.createElement("button");
+        btn.className = "key";
+        btn.textContent = letter;
+        btn.disabled = wrong.has(letter) || revealed.includes(letter);
+        btn.addEventListener("click", () => guess(letter));
+        els.keyboard.appendChild(btn);
+      });
+    }
+
+    function refreshKeyStyles() {
+      [...els.keyboard.children].forEach(btn => {
+        const letter = btn.textContent;
+        btn.classList.remove("correct", "wrong");
+        if (revealed.includes(letter)) btn.classList.add("correct");
+        if (wrong.has(letter)) btn.classList.add("wrong");
+        btn.disabled = wrong.has(letter) || revealed.includes(letter);
+      });
+    }
+
+    function guess(letter) {
+      if (isFinished()) return;
+
+      let hit = false;
+      for (let i = 0; i < secret.length; i++) {
+        if (secret[i].toLowerCase() === letter.toLowerCase() && !revealed[i]) {
+          revealed[i] = secret[i];
+          hit = true;
+        }
+      }
+
+      if (!hit) {
+        if (!wrong.has(letter)) {
+          wrong.add(letter);
+          mistakes++;
+        }
+      }
+
+      updateUI();
+      refreshKeyStyles();
+      checkEnd();
+    }
+
+    function isFinished() {
+      const won = revealed.every(ch => ch !== "");
+      const lost = mistakes >= MAX_MISTAKES;
+      return won || lost;
+    }
+
+    function checkEnd() {
+      const won = revealed.every(ch => ch !== "");
+      const lost = mistakes >= MAX_MISTAKES;
+
+      if (won) {
+        els.result.innerHTML = `🎉 <span class="win">ເຈົ້ນຊະນະແລ້ວ</span><br>The word was: <strong>${secret}</strong><br>Meaning: <em>${meaning}</em>`;
+        disableAllKeys();
+        // show reveal button so user can explicitly reveal (or re-show) the answer
+        els.revealAnswer.style.display = 'inline-block';
+      } else if (lost) {
+        els.result.innerHTML = `💥 <span class="lose">ເສຍໃຈນໍາເດີ້</span><br>The word was: <strong>${secret}</strong><br>Meaning: <em>${meaning}</em>`;
+        disableAllKeys();
+        els.revealAnswer.style.display = 'inline-block';
+      }
+    }
+
+    function disableAllKeys() {
+      [...els.keyboard.children].forEach(btn => btn.disabled = true);
+    }
+
+    // Keyboard input support
+    window.addEventListener("keydown", (e) => {
+      const key = e.key.toLowerCase();
+      if (key.length === 1 && key >= "a" && key <= "z") {
+        guess(key);
+      }
+    });
+
+    // Controls
+    els.newGame.addEventListener("click", pickWord);
+    els.revealAnswer.addEventListener("click", () => {
+      // reveal the full secret word
+      revealed = secret.split("");
+      updateUI();
+      refreshKeyStyles();
+      els.revealAnswer.style.display = 'none';
+    });
+
+    // Start
+    pickWord();
+  </script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: #87CEEB; /* Sky background color */
+}
+
+.game-container {
+    position: relative;
+    width: 600px;
+    height: 300px;
+    overflow: hidden;
+    background-color: #8B4513; /* Brown ground */
+}
+
+.player {
+    position: absolute;
+    bottom: 20px;
+    left: 50px; /* Start position of the player */
+    width: 50px;
+    height: 50px;
+    background-image: url('player.gif');
+    background-size: cover; /* Ensure the image fills the div */
+}
+
+.ground {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 20px;
+    background-color: #654321; /* Ground color */
+}
+
+.obstacle {
+    position: absolute;
+    bottom: 20px;
+    width: 50px;
+    height: 50px;
+    background-image: url('obstacle.jpeg');
+    background-size: cover; /* Ensure the image fills the div */
+}
+
+.score {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: white;
+    font-size: 20px;
+}
+
+.hidden {
+    display: none;
+}
+
+button {
+    position: absolute;
+    top: 100px;
+    left: 50px;
+    padding: 10px 20px;
+    font-size: 18px;
+    background-color: #FF4500; /* Button color */
+    color: white;
+    border: none;
+    cursor: pointer;
+}

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Jump and Run Game</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #87CEEB;
+      margin: 0;
+    }
+    .game-container {
+      position: relative;
+      width: 600px;
+      height: 300px;
+      overflow: hidden;
+      background-color: #8B4513;
+    }
+    #player {
+      position: absolute;
+      bottom: 0;
+      left: 50px;
+      width: 60px;
+      height: 60px;
+      background-image: url("player_stand.png"); /* 👈 standing image */
+      background-size: cover;
+    }
+    #obstacle {
+      position: absolute;
+      bottom: 0;
+      left: 600px;
+      width: 60px;
+      height: 60px;
+      background-image: url("obstacle.jpeg");
+      background-size: cover;
+    }
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-size: 20px;
+    }
+    #restartBtn {
+      position: absolute;
+      top: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      font-size: 18px;
+      background-color: #FF4500;
+      color: white;
+      border: none;
+      cursor: pointer;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+    <div class="header" style="position: right; text-align: center; ">
+  <img src="logo.jpeg" alt="Game Logo" style=" width: 500px; height: 500px;">
+    </div>
+<div class="game-container">
+      <div class="header" style="position: relative; text-align: center; margin-bottom: 20px;">
+        <h1> ຍິນດີຕ້ອງຮັບສູ່ເກມເຝິກໝາໂດດຂ້າມສິ່ງກິດຂວາງ</h1>
+    </div>
+   
+    <div id="score">Score: 0</div>
+    <div id="player"></div>
+    <div id="obstacle"></div>
+    <button id="restartBtn">Restart</button>
+  </div>
+
+  <script>
+    const player = document.getElementById("player");
+    const obstacle = document.getElementById("obstacle");
+    const scoreEl = document.getElementById("score");
+    const restartBtn = document.getElementById("restartBtn");
+
+    let isJumping = false;
+    let score = 0;
+    let gameOver = false;
+    let scoreInterval, obstacleInterval;
+
+    function jump() {
+      if (isJumping || gameOver) return;
+      isJumping = true;
+      let jumpHeight = 0;
+
+      // 👇 Change to jump image
+      player.style.backgroundImage = 'url("dog-running.gif")';
+
+      const upInterval = setInterval(() => {
+        if (jumpHeight >= 150) {
+          clearInterval(upInterval);
+          const downInterval = setInterval(() => {
+            if (jumpHeight <= 0) {
+              clearInterval(downInterval);
+              isJumping = false;
+              // 👇 Change back to standing image
+              player.style.backgroundImage = 'url("dog-running.gif")';
+            }
+            jumpHeight -= 5;
+            player.style.bottom = jumpHeight + "px";
+          }, 20);
+        }
+        jumpHeight += 5;
+        player.style.bottom = jumpHeight + "px";
+      }, 20);
+    }
+
+    function checkCollision() {
+      const playerRect = player.getBoundingClientRect();
+      const obstacleRect = obstacle.getBoundingClientRect();
+
+      if (
+        playerRect.right > obstacleRect.left &&
+        playerRect.left < obstacleRect.right &&
+        playerRect.bottom > obstacleRect.top
+      ) {
+        endGame();
+      }
+    }
+
+    function startObstacle() {
+      let pos = 600;
+      obstacle.style.left = pos + "px";
+
+      obstacleInterval = setInterval(() => {
+        if (!gameOver) {
+          pos -= 5;
+          if (pos < -60) {
+            pos = 600;
+          }
+          obstacle.style.left = pos + "px";
+          checkCollision();
+        }
+      }, 20);
+    }
+
+    function startGame() {
+      score = 0;
+      gameOver = false;
+      restartBtn.style.display = "none";
+      scoreEl.textContent = "Score: 0";
+      player.style.bottom = "0px";
+      clearInterval(scoreInterval);
+      clearInterval(obstacleInterval);
+
+      startObstacle();
+
+      scoreInterval = setInterval(() => {
+        if (!gameOver) {
+          score++;
+          scoreEl.textContent = "Score: " + score;
+        }
+      }, 100);
+    }
+
+    function endGame() {
+      gameOver = true;
+      clearInterval(scoreInterval);
+      clearInterval(obstacleInterval);
+      restartBtn.style.display = "block";
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        jump();
+      }
+    });
+
+    restartBtn.addEventListener("click", () => {
+      startGame();
+    });
+
+    startGame();
+  </script>
+</body>
+</html>

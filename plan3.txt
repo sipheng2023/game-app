@@ -1,0 +1,229 @@
+To add a "Restart" or "Play Again" button to the game and implement a scoring system that tracks the player's jumps, we can update the HTML, CSS, and JavaScript code accordingly. Below, I will provide the modified code, effectively integrating these features into the existing game.
+
+### Updated HTML (index.html)
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jump and Run Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="player" id="player"></div>
+        <div class="ground"></div>
+        <div class="obstacle" id="obstacle"></div>
+        <div class="score" id="score">Score: 0</div>
+        <button id="restartBtn" class="hidden">Play Again</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
+```
+
+### Updated CSS (styles.css)
+
+```css
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: #87CEEB; /* Sky background color */
+}
+
+.game-container {
+    position: relative;
+    width: 600px;
+    height: 300px;
+    overflow: hidden;
+    background-color: #8B4513; /* Brown ground */
+}
+
+.player {
+    position: absolute;
+    bottom: 20px;
+    left: 50px;
+    width: 50px;
+    height: 50px;
+    background-image: url('player.png');
+    background-size: cover; /* Ensure the image fills the div */
+}
+
+.ground {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 20px;
+    background-color: #654321; /* Ground color */
+}
+
+.obstacle {
+    position: absolute;
+    bottom: 20px;
+    right: 0;
+    width: 50px;
+    height: 50px;
+    background-image: url('obstacle.png');
+    background-size: cover; /* Ensure the image fills the div */
+}
+
+.score {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: white;
+    font-size: 20px;
+}
+
+.hidden {
+    display: none;
+}
+
+button {
+    position: absolute;
+    top: 100px;
+    left: 50px;
+    padding: 10px 20px;
+    font-size: 18px;
+    background-color: #FF4500; /* Button color */
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+```
+
+### Updated JavaScript (script.js)
+
+```javascript
+const player = document.getElementById('player');
+const obstacle = document.getElementById('obstacle');
+const scoreText = document.getElementById('score');
+const restartBtn = document.getElementById('restartBtn');
+
+let isJumping = false;
+let isGameOver = false;
+let score = 0;
+
+function jump() {
+    if (isJumping) return;
+    isJumping = true;
+
+    let jumpHeight = 0;
+    const jumpInterval = setInterval(() => {
+        if (jumpHeight >= 100) {
+            clearInterval(jumpInterval);
+            fall();
+        } else {
+            jumpHeight += 5;
+            player.style.bottom = `${20 + jumpHeight}px`;
+        }
+    }, 20);
+    score++; // Increment score for each jump
+    scoreText.innerText = `Score: ${score}`; // Update score display
+}
+
+function fall() {
+    let fallHeight = 100;
+    const fallInterval = setInterval(() => {
+        if (fallHeight <= 0) {
+            clearInterval(fallInterval);
+            isJumping = false;
+        } else {
+            fallHeight -= 5;
+            player.style.bottom = `${20 + fallHeight}px`;
+        }
+    }, 20);
+}
+
+function checkCollision() {
+    const playerRect = player.getBoundingClientRect();
+    const obstacleRect = obstacle.getBoundingClientRect();
+
+    if (
+        playerRect.x < obstacleRect.x + obstacleRect.width &&
+        playerRect.x + playerRect.width > obstacleRect.x &&
+        playerRect.y < obstacleRect.y + obstacleRect.height &&
+        playerRect.y + playerRect.height > obstacleRect.y
+    ) {
+        alert('Game Over!');
+        clearInterval(obstacleMove);
+        isGameOver = true;
+        restartBtn.classList.remove('hidden'); // Show the restart button
+    }
+}
+
+let obstacleMove = setInterval(() => {
+    if (isGameOver) return;
+
+    let obstaclePosition = parseInt(window.getComputedStyle(obstacle).getPropertyValue('right'));
+    obstaclePosition += 2;
+
+    if (obstaclePosition > 600) {
+        obstaclePosition = 0; // Reset position
+    }
+    
+    obstacle.style.right = `${obstaclePosition}px`;
+    checkCollision();
+}, 20);
+
+document.addEventListener('keydown', (event) => {
+    if (event.code === 'Space' && !isGameOver) {
+        jump();
+    }
+});
+
+// Restart the game
+restartBtn.addEventListener('click', () => {
+    isGameOver = false;
+    score = 0;
+    scoreText.innerText = `Score: 0`; // Reset score display
+    obstacle.style.right = '0'; // Reset obstacle position
+    player.style.bottom = '20px'; // Reset player position
+    restartBtn.classList.add('hidden'); // Hide the restart button
+
+    // Restart the obstacle movement
+    obstacleMove = setInterval(() => {
+        let obstaclePosition = parseInt(window.getComputedStyle(obstacle).getPropertyValue('right'));
+        obstaclePosition += 2;
+
+        if (obstaclePosition > 600) {
+            obstaclePosition = 0;
+        }
+
+        obstacle.style.right = `${obstaclePosition}px`;
+        checkCollision();
+    }, 20);
+});
+```
+
+### Explanation of New Features:
+
+1. **Score Tracking:**
+   - A score variable (`score`) increments each time the player successfully jumps.
+   - The score is displayed in the top left corner using the `score` div, which updates every time the player jumps.
+
+2. **Restart Button:**
+   - A button with the text "Play Again" is added. This button is initially hidden and shows up when the game is over.
+   - Clicking the button resets the game state, including the score, player position, and obstacle position.
+
+3. **Game Over Handling:**
+   - Once a collision is detected, the game stops, and the restart button becomes visible.
+   - The user can click the "Play Again" button to restart the game without refreshing the page.
+
+### Final Setup
+
+1. Save the updated files.
+2. Make sure your images (`player.png` and `obstacle.png`) are in the same directory.
+3. Open the `index.html` file in a browser and play the game. Use the space bar to jump, and you can restart the game when you lose using the "Play Again" button.
+
+Enjoy your enhanced game! If you have more questions or need further modifications, feel free to ask!

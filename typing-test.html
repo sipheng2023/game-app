@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Typing Speed Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      width: 700px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    #quote {
+      font-size: 18px;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    #quote span.correct { color: green; }
+    #quote span.incorrect { color: red; }
+    #input {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      height: 120px;
+    }
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    #timer {
+      margin-top: 10px;
+      font-weight: bold;
+      color: #333;
+    }
+    #restartBtn, .langBtn {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #FF4500;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #restartBtn { display: none; }
+    .langBtn {
+      background-color: #4682B4;
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+      <div style="text-align: top; margin-top: 20px;">
+    <img src="logo.jpeg" alt="Logo" style="width: 80px; height: 80px;">
+  </div>
+    <h2>ໂປແກມ ຊ້ອມພິມພາສາລາວ ແລະ ອັງກິດ (English & Lao)  create by Sipheng thongmany</h2>
+    <div>
+      <button class="langBtn" id="englishBtn">English</button>
+      <button class="langBtn" id="laoBtn">Lao</button>
+    </div>
+    <p id="quote"></p>
+    <textarea id="input" placeholder="Start typing here..."></textarea>
+    <div id="timer"></div>
+    <div id="result"></div>
+    <button id="restartBtn">Restart</button>
+  </div>
+
+  <script>
+    const texts = {
+      english: [
+        "The quick brown fox jumps over the lazy dog.",
+        "Typing tests help improve speed and accuracy with daily practice.",
+        "Learning to type faster can save time and boost productivity.",
+        "Lao PDR is a landlocked country in Southeast Asia, bordered by China to the north.",
+        "It shares borders with Thailand to the west, Cambodia to the south, Vietnam to the east.",
+        "Lao PDR has a population of approximately 7 million people and covers an area of 236,800 square kilometers.",
+        "The Lao language is the official language of Lao PDR and is also spoken in some regions of Thailand."
+      ],
+      lao: [
+        "ສຸຂະພາບທີ່ດີມາດ້ວຍສານອາຫານ5ໝູ່ທີ່ສຳຄັນ.",
+        "ການຝຶກພິມທຸກມື້ຊ່ວຍໃຫ້ທ່ານເກັ່ງຂຶ້ນ.",
+        "ການພິມໄວຊ່ວຍປະຢັດເວລາແລະເພີ່ມປະສິດທິພາບ.",
+        "ປະເທດລາວຕັ້ງຢູ່ແຫລມອິນດູຈີນ, ທິດເໜືອຕິດກັບປະເທດຈີນ",
+        "ທິດຕາເວັນຕົກຕິດກັບປະເທດໄທ.",
+        "ປະເທດລາວມີປະຊາຊົນປະມານ 7 ລ້ານຄົນ ແລະ ເປັນສາມາດໃນເຂດເຂົ້າເຖິງ 236,800 ກໍາເປີ.",
+        "ພາສາລາວເປັນພາສາທີ່ໃຊ້ຢູ່ໃນປະເທດລາວ ແລະ ບາງເຂດໃນປະເທດໄທ.",
+        "ວັດທະນະທຳລາວມີຄວາມຫຼາຍຫຼາຍ ທັນໃນເຂດເຂົ້າເຖິງ ແລະ ທັນນານາ.",
+        "ລາວເປັນສະຫະພາບສາທາລະນະ ປະຊາທິປະໄຕ ແລະ ສາມາດໃນເຂດເຂົ້າເຖິງ 236,800 ກໍາເປີ.",
+        "ປະເທດລາວມີຂົນສົ່ງທາງທີ່ສຳຄັນ ຊ່ວຍໃຫ້ການເຄື່ອນໄຫວ ແລະ ການຂະຫຍາຍທາງໄຫຍ່ຫລາຍທາງ."
+      ]
+    };
+
+    let text = "";
+    let currentLang = "english";
+    const quoteEl = document.getElementById('quote');
+    const input = document.getElementById('input');
+    const result = document.getElementById('result');
+    const restartBtn = document.getElementById('restartBtn');
+    const englishBtn = document.getElementById('englishBtn');
+    const laoBtn = document.getElementById('laoBtn');
+    const timerEl = document.getElementById('timer');
+    let startTime, countdown;
+
+    const TIME_LIMIT = 90; // seconds ນັບເວລາຖອຍຫລັງ 30 ວິນາທີ
+
+    function pickRandomText(lang) {
+      const arr = texts[lang];
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function renderQuote() {
+      quoteEl.innerHTML = '';
+      for (let char of text) {
+        const span = document.createElement('span');
+        span.textContent = char;
+        quoteEl.appendChild(span);
+      }
+    }
+
+    function startTest(lang) {
+      currentLang = lang;
+      text = pickRandomText(lang);
+      renderQuote();
+      input.value = '';
+      input.disabled = false;
+      result.innerText = '';
+      restartBtn.style.display = 'none';
+      input.focus();
+      startTimer();
+    }
+
+    function startTimer() {
+      clearInterval(countdown);
+      let timeLeft = TIME_LIMIT;
+      timerEl.innerText = `⏱ Time left: ${timeLeft}s`;
+      countdown = setInterval(() => {
+        timeLeft--;
+        timerEl.innerText = `⏱ Time left: ${timeLeft}s`;
+        if (timeLeft <= 0) {
+          clearInterval(countdown);
+          input.disabled = true;
+          restartBtn.style.display = 'inline-block';
+          result.innerText = "⏰ Time's up!";
+        }
+      }, 1000); // 1000
+    }
+
+    input.addEventListener('focus', () => {
+      startTime = new Date();
+    });
+
+    input.addEventListener('input', () => {
+      const typed = input.value;
+      const spans = quoteEl.querySelectorAll('span');
+
+      spans.forEach(span => {
+        span.classList.remove('correct', 'incorrect');
+      });
+
+      for (let i = 0; i < spans.length; i++) {
+        if (typed[i] == null) continue;
+        if (typed[i] === text[i]) {
+          spans[i].classList.add('correct');
+        } else {
+          spans[i].classList.add('incorrect');
+        }
+      }
+
+      if (typed === text) {
+        clearInterval(countdown);
+        const endTime = new Date();
+        const timeTaken = (endTime - startTime) / 1000; // in seconds
+        const words = text.split(/\s+/).length;
+        const wpm = Math.round((words / timeTaken) * 60); // words per minute
+        result.innerText = `✅ Completed in ${timeTaken.toFixed(1)}s — Speed: ${wpm} WPM`;
+        restartBtn.style.display = 'inline-block';
+        input.disabled = true;
+      }
+    });
+
+    restartBtn.addEventListener('click', () => {
+      startTest(currentLang);
+    });
+
+    englishBtn.addEventListener('click', () => {
+      startTest("english");
+    });
+
+    laoBtn.addEventListener('click', () => {
+      startTest("lao");
+    });
+
+    // Initialize with English by default
+    startTest("english");
+  </script>
+</body>
+</html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dog Jump Game</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #87ceeb;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      text-align: center;
+    }
+    .game-area {
+      position: relative;
+      width: 400px;
+      height: 300px;
+      background: #87ceeb;
+      border: 2px solid #000;
+      overflow: hidden;
+      margin: 20px 0;
+    }
+    .dog {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><circle cx="10" cy="12" r="4" fill="%23ffb84d"/><circle cx="30" cy="12" r="4" fill="%23ffb84d"/><ellipse cx="20" cy="20" rx="12" ry="10" fill="%23ffb84d"/><rect x="8" y="28" width="6" height="10" fill="%23ffb84d"/><rect x="16" y="28" width="6" height="10" fill="%23ffb84d"/><rect x="24" y="28" width="6" height="10" fill="%23ffb84d"/></svg>');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+
+      bottom: 20px;
+      left: 20px;
+      border-radius: 5px;
+    }
+    .block {
+      position: absolute;
+      width: 40px;
+      height: 60px;
+      background: #ff6b6b;
+      bottom: 0;
+    }
+    .score-board {
+      display: flex;
+      justify-content: space-around;
+      margin: 20px 0;
+      font-size: 18px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    .game-over {
+      font-size: 24px;
+      color: red;
+      margin-top: 20px;
+      display: none;
+    }
+    .winner {
+      font-size: 28px;
+      color: gold;
+      margin-top: 20px;
+      display: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🐕 Dog Jump Game create by sipheng teacher</h1>
+    <img src="logo.jpeg" alt="Dog Logo" style="width: 80px; height: 80px;"><br>
+    <h4>Inthaninh School</h4>
+    <div class="game-area">
+      <div class="dog" id="dog"></div>
+    </div>
+    <div class="score-board">
+      <div>Score: <span id="score">0</span></div>
+      <div>High Score: <span id="highScore">0</span></div>
+      <div>Last Score: <span id="lastScore">0</span></div>
+    </div>
+    <button onclick="startGame()">Start Game</button>
+    <button onclick="restartGame()">Restart</button>
+    <div class="game-over" id="gameOver">GAME OVER!</div>
+    <div class="winner" id="winner">🎉 You are Winner! 🎉</div>
+  </div>
+
+  <script>
+    let gameRunning = false;
+    let isJumping = false;
+    let ducking = false;
+    let score = 0;
+    let highScore = Number(localStorage.getItem('highScore') || 0);
+    let lastScore = Number(localStorage.getItem('lastScore') || 0);
+    let dogPos = 20;
+    let dogVelocity = 0;
+    const groundY = 20;
+    const gravity = 0.6;
+    const jumpStrength = 15;
+
+    document.getElementById('highScore').textContent = highScore;
+    document.getElementById('lastScore').textContent = lastScore;
+
+    document.addEventListener('keydown', (e) => { // Handle jump/duck/fast-fall
+      if ((e.key === ' ' || e.key === 'ArrowUp') && gameRunning && !isJumping) {
+        // Space or Up arrow to jump
+        isJumping = true;
+        dogVelocity = jumpStrength;
+      } else if (e.key === 'ArrowDown') {
+        // If in air, force faster fall; if on ground, duck
+        if (gameRunning && isJumping) {
+          dogVelocity = -12; // strong downward velocity
+        } else if (gameRunning && !isJumping) {
+          if (!ducking) {
+            ducking = true;
+            const dogEl = document.getElementById('dog');
+            dogEl.style.height = '20px';
+          }
+        }
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowDown' && ducking) {
+        ducking = false;
+        const dogEl = document.getElementById('dog');
+        dogEl.style.height = '40px';
+      }
+    });
+
+    function startGame() { // Start the game
+      if (!gameRunning) {
+        gameRunning = true;
+        score = 0;
+        document.getElementById('gameOver').style.display = 'none';
+        document.getElementById('winner').style.display = 'none';
+        document.getElementById('score').textContent = score;
+        gameLoop();
+        spawnBlock();
+      }
+    }
+
+    function restartGame() { // Restart the game
+      gameRunning = false;
+      isJumping = false;
+      score = 0;
+      dogPos = 20;
+      dogVelocity = 0;
+      document.getElementById('gameOver').style.display = 'none';
+      document.getElementById('winner').style.display = 'none';
+      document.getElementById('score').textContent = score;
+      const dogEl = document.getElementById('dog');
+      dogEl.style.bottom = dogPos + 'px';
+      dogEl.style.height = '40px';
+      document.querySelectorAll('.block').forEach(b => b.remove());
+    }
+
+    function gameLoop() { // Main game loop (fixed up/down physics)
+      if (!gameRunning) return;
+
+      // upward velocity is positive; gravity reduces it
+      dogVelocity -= gravity;
+      dogPos += dogVelocity;
+
+      // clamp to ground
+      if (dogPos <= groundY) {
+        dogPos = groundY;
+        isJumping = false;
+        dogVelocity = 0;
+      }
+
+      document.getElementById('dog').style.bottom = dogPos + 'px';
+
+      checkCollisions();
+      setTimeout(gameLoop, 30);
+    }
+
+    function spawnBlock() { // Spawn a new block
+      if (!gameRunning) return;
+
+      // Spawn 2 blocks
+      for (let i = 0; i < 2; i++) {
+        const block = document.createElement('div');
+        block.className = 'block';
+        block.style.left = '400px';
+        const randomHeight = Math.random() * 200; // Random height between 0-200px
+        block.style.bottom = randomHeight + 'px';
+        document.querySelector('.game-area').appendChild(block);
+
+        let blockLeft = 400;
+        const blockInterval = setInterval(() => {
+          if (!gameRunning) {
+            clearInterval(blockInterval);
+            block.remove();
+            return;
+          }
+
+          blockLeft -= 6;
+          block.style.left = blockLeft + 'px';
+
+          if (blockLeft < -40) { // Off screen
+            clearInterval(blockInterval);
+            block.remove();
+            score++;
+            document.getElementById('score').textContent = score; // Update score display
+            
+            if (score === 100) {
+              winGame();
+            }
+          }
+        }, 30);
+      }
+
+      setTimeout(() => {
+        if (gameRunning) spawnBlock();
+      }, 2000);
+    }
+
+    function checkCollisions() {
+      const dog = document.getElementById('dog');
+      const blocks = document.querySelectorAll('.block');
+
+      blocks.forEach(block => {
+        const dogRect = dog.getBoundingClientRect();
+        const blockRect = block.getBoundingClientRect();
+
+        if (
+          dogRect.left < blockRect.right &&
+          dogRect.right > blockRect.left &&
+          dogRect.top < blockRect.bottom &&
+          dogRect.bottom > blockRect.top
+        ) {
+          endGame();
+        }
+      });
+    }
+
+    function endGame() {
+      gameRunning = false;
+      lastScore = score;
+      localStorage.setItem('lastScore', lastScore);
+      
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('highScore', highScore);
+        document.getElementById('highScore').textContent = highScore;
+      }
+
+      document.getElementById('lastScore').textContent = lastScore;
+      document.getElementById('gameOver').style.display = 'block';
+    }
+
+    function winGame() {
+      gameRunning = false;
+      lastScore = score;
+      localStorage.setItem('lastScore', lastScore);
+      highScore = score;
+      localStorage.setItem('highScore', highScore);
+      document.getElementById('highScore').textContent = highScore;
+      document.getElementById('lastScore').textContent = lastScore;
+      document.getElementById('winner').style.display = 'block';
+      const winnerImg = document.createElement('img');
+      winnerImg.src = 'winner.png';
+      winnerImg.style.width = '100px';
+      winnerImg.style.height = '100px';
+      winnerImg.style.marginTop = '20px';
+      document.querySelector('.container').appendChild(winnerImg);
+    }
+  </script>
+</body>
+
+</html>
